@@ -1,6 +1,7 @@
 # py-ilp-plugin-virtual
 
 > ILP virtual ledger plugin for directly transacting connectors 
+> Pythonic offshoot of ```js-ilp-plugin-virtual```
 
 ## Installation 
 

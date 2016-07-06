@@ -20,7 +20,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 		self.connection.on('receive', lambda obj: self._receive(obj).catch(self._handle))
 
 		self._expects 	= dict()
-		self._seen 	  	= dict()
+		self._seen 		= dict()
 		self._fulfilled = dict()
 
 	def _log(self, msg):

@@ -1,5 +1,0 @@
-pymitter
-dotmap
-coloredlogs
-paho-mqtt
-promise

@@ -13,14 +13,15 @@ class Noob_Plugin_Virtual(EventEmitter):
 
 		# self.id = opts.id 	# Compatibility with five bells connector; is this necessary? 
 
-		self.auth 				= opts['auth']
-		self.connected 			= False 
-		self.connection_config 	= opts['auth']
-		self.connection 		= Connection(self.connection_config)
+		self.auth = opts['auth']
+		self.connected = False 
+		self.connection_config = opts['auth']
+		self.connection = Connection(self.connection_config)
+		
 		self.connection.on('receive', lambda obj: self._receive(obj).catch(self._handle))
 
-		self._expects 	= dict()
-		self._seen 		= dict()
+		self._expects = dict()
+		self._seen = dict()
 		self._fulfilled = dict()
 
 	def _log(self, msg):

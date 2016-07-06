@@ -25,7 +25,7 @@ setup(
     ],
 
     keywords='ILP interledger protocol payments',
-    packages=find_packages(where='.', exclude=['test']),
+    packages=['model', 'util', 'plugin'],
     install_requires=['pymitter', 'dotmap', 'coloredlogs', 'paho-mqtt', 'promise'],
     entry_points={
         'console_scripts': [

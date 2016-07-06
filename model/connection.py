@@ -15,14 +15,14 @@ class Connection(EventEmitter):
 		super().__init__()
 
 		self.config = config
-		self.name 	= config.account 
-		self.host 	= config.host 
-		self.token	= config.token
+		self.name 	= config['account']
+		self.host 	= config['host']
+		self.token	= config['token']
 
 		self.client = None 
 
 		self.is_noob = True 
-		if self.config.secret != None:
+		if 'secret' in self.config:
 			self.is_noob = False 
 
 		self.recv_channel = ('noob_' if self.is_noob else 'nerd_') + self.token 
@@ -74,6 +74,7 @@ class Connection(EventEmitter):
 		return Promise.resolve(None)
 
 	def send(self, msg):
+		# TO-DO: finish implementing promise for sending
 		self.client.publish(topic=self.send_channel, payload=json.dumps(msg))
 
 	

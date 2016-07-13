@@ -33,35 +33,33 @@ class Connection(EventEmitter):
 		log.error(self.name + ': ' + err)
 
 	def connect(self):
-		
-		connection_instance = self
 
 		def on_connect(client, userdata, flags, rc):
-			client.subscribe(connection_instance.recv_channel)
-			connection_instance._log('connected! subscribing to channel `{}`'
-				.format(connection_instance.recv_channel))
-			connection_instance.emit('connect')
+			client.subscribe(self.recv_channel)
+			self._log('connected! subscribing to channel `{}`'
+				.format(self.recv_channel))
+			self.emit('connect')
 
 		def on_message(client, userdata, msg):
 			try:
-				connection_instance._log('receiving message')
+				self._log('receiving message')
 				payload = json.loads(msg.payload)
 				if type(payload) is bytes:
 					payload = payload.decode('utf-8')
 				# TO-DO: What is final form of payload? 
 				# Should it be JSON object for transactions?
-				connection_instance.emit('receive', payload)
+				self.emit('receive', payload)
 			except Exception:
 				pass 	
 
 		def on_publish(client, userdata, mid):
-			connection_instance._log('published message')
-			connection_instance.emit("published")
+			self._log('published message')
+			self.emit("published")
 
 		def on_disconnect(client, userdata, rc):
 			status = '' if rc == 0 else ' [potential network error]'
-			connection_instance._log('disconnected from host `{}`'
-				.format(connection_instance.host) + status)
+			self._log('disconnected from host `{}`'
+				.format(self.host) + status)
 			
 		self.client = mqtt.Client()
 		self.client.on_connect    = on_connect

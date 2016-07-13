@@ -23,9 +23,6 @@ class Noob_Plugin_Virtual(EventEmitter):
 	def __init__(self, opts):
 		super().__init__()
 
-		global noob_instance 
-		noob_instance = self 
-
 		self._handle = lambda err: self.emit('exception', err)
 
 		# self.id = opts.id 	
@@ -75,8 +72,8 @@ class Noob_Plugin_Virtual(EventEmitter):
 
 		def fulfill_connect(resolve, reject):
 			def noob_connect():
-				noob_instance.emit('connect')
-				noob_instance.connected = True 
+				self.emit('connect')
+				self.connected = True 
 			self.connection.on('connect', noob_connect())
 
 		return Promise(fullfill_connect)
@@ -84,8 +81,8 @@ class Noob_Plugin_Virtual(EventEmitter):
 	def disconnect(self):
 
 		def fulfill_disconnect():
-			noob_instance.emit('disconnect')
-			noob_instance.connected = False 
+			self.emit('disconnect')
+			self.connected = False 
 			return Promise.resolve(None)
 
 		return self.connection.disconnect().then(success=fulfill_disconnect)

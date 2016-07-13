@@ -65,6 +65,22 @@ class Noob_Plugin_Virtual(EventEmitter):
 		return self._fulfilled[tid]
 
 	def _receive(self, obj):
+		'''
+			Cases:
+
+			* obj.type == transfer && not seen_transfer(obj.transfer.id)
+			* obj.type == acknowledge && expected_response(obj.transfer.id)
+			* obj.type == fulfill_execution_condition && 
+				not fulfilled_transfer(obj.transfer.id)
+			* obj.type == fulfill_cancellation_condition &&
+				not fulfilled_trasnfer(obj.transfer.id)
+			* obj.type == reject && not fulfilled_transfer(obj.transfer.id) 
+			* obj.type == reply
+			* obj.type == balance 
+			* obj.type == info 
+			* obj.type == settlement
+		'''
+		
 		if (obj['type'] == 'transfer' \
 			and not self._seen_transfer(obj['transfer']['id'])):
 			self._see_transfer(obj['transfer']['id'])

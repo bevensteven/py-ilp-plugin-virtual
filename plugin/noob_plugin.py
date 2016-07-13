@@ -1,6 +1,6 @@
 from pymitter import EventEmitter
 from util.log import Logger 
-from util.utils import implement 
+from util.utils import implement, PluginException 
 from model.connection import Connection
 from promise import Promise 
 
@@ -65,8 +65,8 @@ class Noob_Plugin_Virtual(EventEmitter):
 		return self._fulfilled[tid]
 
 	def _receive(self, obj):
-		if obj['type'] == 'transfer' 
-			and not self._seen_transfer(obj['transfer']['id']):
+		if (obj['type'] == 'transfer' \
+			and not self._seen_transfer(obj['transfer']['id'])):
 			self._see_transfer(obj['transfer']['id'])
 			self._log('received a Transfer with tid {}'
 				.format(obj['transfer']['id']))
@@ -76,52 +76,62 @@ class Noob_Plugin_Virtual(EventEmitter):
 					"transfer": obj['transfer'],
 					"message": "transfer accepted"
 				})
-		elif obj['type'] == 'acknowledge' 
+
+		elif obj['type'] == 'acknowledge' \
 			and self._expected_response(obj['transfer']['id']):
 			self._receive_response(obj['transfer']['id'])
 			self._log('received an ACK on tid: {}'
 				.format(obj['transfer']['id']))
 			# TO-DO: Should accept be fulfill execution condition in OTP
-			self.emit("accept", obj['transfer'], <>) # third arg (buffer)
+			self.emit("accept", obj['transfer'], Buffer(obj['message'])) 
 			return Promise.resolve(None)
-		elif obj['type'] == 'fulfill_execution_condition'
+
+		elif obj['type'] == 'fulfill_execution_condition' \
 			and not self._fulfilled_transfer(obj['transfer']['id']):
-			self.emit("fulfill_execution_condtion", obj['transfer'], <>)
+			self.emit("fulfill_execution_condition", 
+				obj['transfer'], 
+				Buffer(obj['fulfillment']))
 			self._fulfill_transfer(obj['transfer']['id'])
 			return Promise.resolve(None)
-		elif obj['type'] == 'fulfill_cancellation_condtion'
+
+		elif obj['type'] == 'fulfill_cancellation_condtion' \
 			and not self._fulfilled_transfer(obj['transfer']['id']):
-			self.emit(
-				'fullfill_cancellation_condtion',
+			self.emit('fullfill_cancellation_condition',
 				obj['transfer'],
-				<>)
+				Buffer(obj['fulfillment']))
 			self._fulfill_transfer(obj['transfer']['id'])
 			return Promise.resolve(None)
-		elif obj['type'] == 'reject' 
+
+		elif obj['type'] == 'reject' \
 			and not this._fulfilled_transfer(obj['transfer']['id']):
 			self._log('received a reject on tid: {}'
 				.format(obj['transfer']['id']))
-			self.emit('reject', obj['transfer'], <>)
+			self.emit('reject', obj['transfer'], Buffer(obj['message']))
 			return Promise.resolve(None)
+
 		elif obj['type'] == 'reply':
 			self._log('received a reply on tid: {}'
 				.format(obj['transfer']['id']))
-			self.emit('reply', obj['transfer'], <>)
+			self.emit('reply', obj['transfer'], Buffer(obj['message']))
 			return Promise.resolve(None)
+
 		elif obj['type'] == 'balance':
 			self._log('received balance: {}'.format(obj['balance']))
 			self.emit('balance', obj['balance'])
 			return Promise.resolve(None)
+
 		elif obj['type'] == 'info':
 			self.log('received info.')
 			self.emit('_info', obj['info'])
 			return Promise.resolve(None)
+
 		elif obj['type'] == 'settlement':
 			self._log('received settlement notification.')
 			self.emit('settlement', obj['balance'])
 			return Promise.resolve(None)
+
 		else:
-			self._handle(Exception("Invalid message received"))
+			self._handle(PluginException("Invalid message received"))
 			return Promise.resolve(None)
 
 	def connect(self):

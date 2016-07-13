@@ -38,7 +38,8 @@ class Connection(EventEmitter):
 
 		def on_connect(client, userdata, flags, rc):
 			client.subscribe(connection_instance.recv_channel)
-			connection_instance._log('connected! subscribing to channel `{}`'.format(connection_instance.recv_channel))
+			connection_instance._log('connected! subscribing to channel `{}`'
+				.format(connection_instance.recv_channel))
 			connection_instance.emit('connect')
 
 		def on_message(client, userdata, msg):
@@ -47,7 +48,8 @@ class Connection(EventEmitter):
 				payload = json.loads(msg.payload)
 				if type(payload) is bytes:
 					payload = payload.decode('utf-8')
-				# TO-DO: What is final form of payload? Should it be JSON object for transactions?
+				# TO-DO: What is final form of payload? 
+				# Should it be JSON object for transactions?
 				connection_instance.emit('receive', payload)
 			except Exception:
 				pass 	
@@ -58,7 +60,8 @@ class Connection(EventEmitter):
 
 		def on_disconnect(client, userdata, rc):
 			status = '' if rc == 0 else ' [potential network error]'
-			connection_instance._log('disconnected from host `{}`'.format(connection_instance.host) + status)
+			connection_instance._log('disconnected from host `{}`'
+				.format(connection_instance.host) + status)
 			
 		self.client = mqtt.Client()
 		self.client.on_connect    = on_connect
@@ -82,7 +85,7 @@ class Connection(EventEmitter):
 			self.client.publish(topic=self.send_channel,
 				payload=json.dumps(msg))
 			self.once("published", lambda: resolve(None))
-			
+
 		return Promise(fulfill_send)
 
 	

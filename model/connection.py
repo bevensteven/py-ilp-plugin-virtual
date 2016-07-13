@@ -9,6 +9,16 @@ log = Logger('connection')
 
 class Connection(EventEmitter):
 
+	'''
+		Create a Connection instance to an MQTT broker via paho.mqtt
+
+		@param config
+
+		@param config.account 
+		@param config.host
+		@param config.token
+	'''
+
 	def __init__(self, config):
 		super().__init__()
 

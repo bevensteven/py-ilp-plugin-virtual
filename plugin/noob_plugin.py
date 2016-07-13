@@ -164,7 +164,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 				resolve(None)
 			self.connection.on('connect', noob_connect())
 
-		return Promise(fullfill_connect)
+		return Promise(fulfill_connect)
 
 	def disconnect(self):
 

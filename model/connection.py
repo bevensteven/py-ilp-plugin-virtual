@@ -1,3 +1,4 @@
+import sys 
 from pymitter import EventEmitter
 from util.log import Logger 
 from promise import Promise
@@ -5,9 +6,6 @@ import paho.mqtt.client as mqtt
 import json
 
 log = Logger('connection')
-
-def on_connect(client, userdata, flags, rc):
-	print("Connected to host {} with result code {}".format(self.host))
 
 class Connection(EventEmitter):
 
@@ -25,7 +23,7 @@ class Connection(EventEmitter):
 		if 'secret' in self.config:
 			self.is_noob = False 
 
-		self.recv_channel = ('noob_' if self.is_noob else 'nerd_') + self.token 
+		self.recv_channel = ('noob_' if self.is_noob else 'nerd_') + self.token
 		self.send_channel = ('nerd_' if self.is_noob else 'noob_') + self.token
 
 	def _log(self, msg):
@@ -45,6 +43,7 @@ class Connection(EventEmitter):
 
 		def on_message(client, userdata, msg):
 			try:
+				connection_instance._log('receiving message')
 				payload = json.loads(msg.payload)
 				if type(payload) is bytes:
 					payload = payload.decode('utf-8')
@@ -52,6 +51,10 @@ class Connection(EventEmitter):
 				connection_instance.emit('receive', payload)
 			except Exception:
 				pass 	
+
+		def on_publish(client, userdata, mid):
+			connection_instance._log('published message')
+			connection_instance.emit("published")
 
 		def on_disconnect(client, userdata, rc):
 			status = '' if rc == 0 else ' [potential network error]'
@@ -63,7 +66,7 @@ class Connection(EventEmitter):
 		self.client.on_disconnect = on_disconnect
 
 		self._log('connecting to host `{}`...'.format(self.host))
-		self.client.connect_async(host=this.host, port=1883, keepalive=30)
+		self.client.connect_async(host=self.host, port=1883, keepalive=30)
 		self.client.loop_start()
 
 		return Promise.resolve(None)
@@ -74,8 +77,20 @@ class Connection(EventEmitter):
 		return Promise.resolve(None)
 
 	def send(self, msg):
-		# TO-DO: finish implementing promise for sending
-		self.client.publish(topic=self.send_channel, payload=json.dumps(msg))
+
+		def fulfill_send(resolve, reject):
+			self.client.publish(topic=self.send_channel,
+				payload=json.dumps(msg))
+			self.once("published", lambda: resolve(None))
+			
+		return Promise(fulfill_send)
 
 	
-
+# For testing 
+if __name__ == "__main__":
+	if len(sys.argv) > 1 and sys.argv[1] == 'test':
+		test_configuration = {
+			"account": "Steven",
+			"token": "test_mqtt",
+			"host": "broker.hivemq.com"
+		}

@@ -35,10 +35,14 @@ class Noob_Plugin_Virtual(EventEmitter):
 
 		on_receive = lambda obj: self._receive(obj).catch(self._handle)
 		self.connection.on('receive', on_receive)
+		self.connection.on('disconnect', self.disconnect())
 
 		self._expects = dict()
 		self._seen = dict()
 		self._fulfilled = dict()
+
+	def can_connect_to_ledger(self, auth):
+		implement()
 
 	def _log(self, msg):
 		log.log(self.auth.account + ': ' + msg)
@@ -80,7 +84,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 			* obj.type == info 
 			* obj.type == settlement
 		'''
-		
+
 		if (obj['type'] == 'transfer' \
 			and not self._seen_transfer(obj['transfer']['id'])):
 			self._see_transfer(obj['transfer']['id'])
@@ -157,6 +161,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 			def noob_connect():
 				self.emit('connect')
 				self.connected = True 
+				resolve(None)
 			self.connection.on('connect', noob_connect())
 
 		return Promise(fullfill_connect)

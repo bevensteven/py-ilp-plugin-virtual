@@ -70,6 +70,7 @@ class Connection(EventEmitter):
 			status = '' if rc == 0 else ' [potential network error]'
 			self._log('disconnected from host `{}`'
 				.format(self.host) + status)
+			self.emit("disconnect")
 			
 		self.client = mqtt.Client()
 		self.client.on_connect    = on_connect

@@ -6,6 +6,8 @@
 
 ## Installation 
 
+Please use Python 3.5
+
 ```sh
 git clone https://github.com/bevensteven/py-ilp-plugin-virtual
 cd py-ilp-plugin-virtual

@@ -264,20 +264,40 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			self._log('received a Transfer with tid: ' + obj['transfer']['id'])
 			self.emit('receive', obj['transfer'])
 			return self._handle_transfer(obj['transfer'])
+
 		elif obj['type'] == 'acknowledge':
 			self._log('received an ACK on tid: ' + obj['transfer']['id'])
 			self.emit('accept', obj['transfer'], Buffer(obj['message']))
 			return self._handle_acknowledge(obj['transfer'])
+
 		elif obj['type'] == 'reject':
-			# implement
+			self._log('received a reject on tid: ' + obj['transfer']['id'])
+			self.emit('reject', obj['transfer'], Buffer(obj['message']))
+			return self._handle_reject(obj['transfer'])
+
 		elif obj['type'] == 'reply':
-			# implement 
+			self._log('received a reply on tid: ' + obj['transfer']['id'])
+			def _receive_reply_then(transfer):
+				self.emit('reply', transfer, Buffer(obj['message']))
+				return Promise.resolve(None)
+			return self.transfer_log.get_id(obj['transfer']['id'])
+				.then(_receive_reply_then)
+
 		elif obj['type'] == 'fulfillment':
-			# implement 
+			self._log('received a fulfillment for tid: ' + obj['transfer']['id'])
+			def _receive_fulfillment_then(transfer):
+				self.emit('fulfillment', transfer, Buffer(obj['fulfillment']))
+				return self._fulfill_condition_local(transfer, obj['fulfillment'])
+			return self.transfer_log.get_id(obj['transfer']['id'])
+				.then(_receive_fulfillment_then)
+
 		elif obj['type'] == 'balance':
-			# implement 
+			self._log('received a query for the balance...')
+			return self._send_balance()
+
 		elif obj['type'] == 'info':
-			# implement 
+			return self._send_info()
+			
 		else:
 			self._handle(Exception('Invalid message received'))
 
@@ -287,7 +307,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			if exists:
 				self._complete_transfer(transfer)
 			else:
-				self.emit('_falseReject', transfer) # debugging event 
+				self.emit('_falseReject', transfer) 
+				# used for debugging purposes
 
 		return self.transfer_log.exists(transfer)
 			.then(_handle_reject_then)
@@ -354,7 +375,75 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 	def _handle_acknowledge(self, transfer):
 
-		
+		def _handle_acknowledge_then(stored_transfer):
+			if Transfer.equals(stored_transfer, transfer):
+				return self.transfer_log.is_complete(transfer)
+			else:
+				self._false_acknowledge(transfer)
 
+		def is_complete_transfer_then(is_complete):
+			if is_complete:
+				self._false_acknowledge(transfer)
+				# don't add to balance yet if it's UTP/ATP transfer 
+			elif not transfer['executionCondition']:
+				self.balance.add(transfer['amount'])
+
+		def acknowledge_transfer_then():
+			self._handle_timer(transfer)
+			self._complete_transfer(transfer)
+
+		return self.transfer_log.get(transfer)
+			.then(_handle_acknowledge_then)
+				.then(is_complete_transfer_then)
+					.then(acknowledge_transfer_then)
+
+	def _false_acknowledge(self, transfer):
+		self.emit('_falseAcknowledge', transfer)
+		raise Exception("Received false acknowledge for tid: " + transfer['id'])
+
+	def _handle_timer(self, transfer):
+		if transfer['expiresAt']:
+			now = datetime.now()
+			expiry = datetime(transfer['expiresAt'])
+
+			def timer():
+				def timer_then(is_fulfilled):
+					if not is_fulfilled:
+						self._timeout_transfer(transfer)
+						self._log('automatic timeout on tid: ' + transfer['id'])
+				self.transfer_log.is_fulfilled(transfer)
+					.then(timer_then)
+						.catch(self._handle)
+
+			# find a setTimeout function for Python (implement in utils.py)
+			self.timers[transfer['id']] = setTimeout(timer, expiry - now)
+			# for debugging purposes 
+			self.emit('_timing', transfer['id'])
+
+	def _accept_transfer(self, transfer):
+		self._log('sending out an ACK for tid: ' + transfer['id'])	
+		return self.connection.send({
+				'type': 'acknowledge',
+				'transfer': transfer,
+				'message': 'transfer accepted'
+			})
+
+	def _reject_transfer(self, transfer, reason):
+		self._log('sending out a reject for tid: ' + transfer['id'])
+		self._complete_transfer(transfer)
+		return self.conneciton.send({
+				'type': 'reject',
+				'transfer': transfer,
+				'message': reason
+			})
+
+	def _complete_transfer(self, transfer):
+		promises = list(self.transfer_log.complete(transfer))
+		if not transfer['executeCondition']:
+			promises.append(self.transfer_log.fulfill(transfer))
+		return Promise.all(promises)
+
+	def _log(self, msg):
+		log.log("{}: {}".format(self.auth['account'], message))
 
 

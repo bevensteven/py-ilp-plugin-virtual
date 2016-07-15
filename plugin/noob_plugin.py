@@ -21,6 +21,8 @@ class Noob_Plugin_Virtual(EventEmitter):
 	'''
 
 	def __init__(self, opts):
+		self.DEBUG = None # for debugging 
+
 		super().__init__()
 
 		self._handle = lambda err: self.emit('exception', err)
@@ -35,17 +37,19 @@ class Noob_Plugin_Virtual(EventEmitter):
 
 		on_receive = lambda obj: self._receive(obj).catch(self._handle)
 		self.connection.on('receive', on_receive)
-		self.connection.on('disconnect', self.disconnect())
+		self.connection.on('disconnect', self.disconnect)
 
 		self._expects = dict()
 		self._seen = dict()
 		self._fulfilled = dict()
 
+		self._log("Initialized Noob Plugin Virtual: {}".format(self.auth))
+
 	def can_connect_to_ledger(self, auth):
 		implement()
 
 	def _log(self, msg):
-		log.log(self.auth.account + ': ' + msg)
+		log.log(self.auth['account'] + ': ' + msg)
 
 	def _expect_response(self, tid):
 		self._expects[tid] = True 
@@ -60,7 +64,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 		self._seen[tid] = True 
 
 	def _seen_transfer(self, tid):
-		return self._seen[tid]
+		return tid in self._seen
 
 	def _fulfill_transfer(self, id):
 		self._fulfilled[tid] = True 
@@ -84,7 +88,13 @@ class Noob_Plugin_Virtual(EventEmitter):
 			* obj.type == info 
 			* obj.type == settlement
 		'''
+		print('_receive called with obj: {}, type: {}'.format(obj, type(obj))) # debugging
 
+		if type(obj) is not dict:
+			self._log("unexpected non-JSON message: '{}'".format(obj))
+			return Promise.resolve(None)
+		self.DEBUG = obj # debugging
+		
 		if (obj['type'] == 'transfer' \
 			and not self._seen_transfer(obj['transfer']['id'])):
 			self._see_transfer(obj['transfer']['id'])
@@ -185,8 +195,8 @@ class Noob_Plugin_Virtual(EventEmitter):
 
 	def send(self, outgoing_transfer):
 		self._log("Sending out a Transfer with tid: {}"
-			.format(outgoing_transfer.id))
-		self._expect_response(outgoing_transfer.id)
+			.format(outgoing_transfer['id']))
+		self._expect_response(outgoing_transfer['id'])
 		return self.connection.send({
 				"type": "transfer",
 				"transfer": outgoing_transfer
@@ -227,3 +237,16 @@ class Noob_Plugin_Virtual(EventEmitter):
 				"transferId": transfer_id,
 				"message": reply_message
 			})
+
+if __name__ == '__main__':
+	import sys 
+	if len(sys.argv) > 1 and sys.argv[1] == 'test':
+		test_opt = {
+			'auth': {
+				'account': 'Steven',
+				'token': 'test_mqtt',
+				'host': 'broker.hivemq.com'
+			}
+		}
+		test_plugin = Noob_Plugin_Virtual(test_opt)
+		test_plugin.connect()

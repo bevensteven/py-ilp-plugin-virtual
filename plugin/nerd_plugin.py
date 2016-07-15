@@ -81,7 +81,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		return self.connection.disconnect.then(success=fulfill_disconnect)
 
 	def is_connected(self):
-		returen self.connected 
+		return self.connected 
 
 	def get_connectors(self):
 		# Currently, only connections between two plugins are supported 
@@ -297,7 +297,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 		elif obj['type'] == 'info':
 			return self._send_info()
-			
+
 		else:
 			self._handle(Exception('Invalid message received'))
 

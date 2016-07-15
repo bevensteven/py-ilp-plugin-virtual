@@ -1,9 +1,11 @@
 import sys 
 from pymitter import EventEmitter
-from util.log import Logger 
 from promise import Promise
 import paho.mqtt.client as mqtt  
 import json
+
+from util.log import Logger 
+from util.utils import is_json
 
 log = Logger('connection')
 
@@ -20,6 +22,8 @@ class Connection(EventEmitter):
 	'''
 
 	def __init__(self, config):
+		self.DEBUG = None 	# for debugging
+
 		super().__init__()
 
 		self.config = config
@@ -52,14 +56,20 @@ class Connection(EventEmitter):
 
 		def on_message(client, userdata, msg):
 			try:
+				self.DEBUG = msg
 				self._log('receiving message')
-				payload = json.loads(msg.payload)
-				if type(payload) is bytes:
-					payload = payload.decode('utf-8')
-				# TO-DO: What is final form of payload? 
-				# Should it be JSON object for transactions?
+				if type(msg.payload) is bytes:
+					payload = msg.payload.decode('utf-8')
+					if is_json(payload):
+						payload = json.loads(payload)
+				else:
+					payload = msg.payload
+					if is_json(msg.payload):
+						payload = json.loads(msg.payload)
 				self.emit('receive', payload)
-			except Exception:
+			except Exception as e:
+				self._log('exception raised on receiving message')	# debugging
+				print(e)
 				pass 	
 
 		def on_publish(client, userdata, mid):

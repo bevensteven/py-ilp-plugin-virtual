@@ -56,7 +56,7 @@ class Connection(EventEmitter):
 
 		def on_message(client, userdata, msg):
 			try:
-				self.DEBUG = msg
+				self.DEBUG = msg 	# debugging
 				self._log('receiving message')
 				if type(msg.payload) is bytes:
 					payload = msg.payload.decode('utf-8')

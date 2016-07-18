@@ -13,5 +13,5 @@ def is_json(obj):
 	return True
 
 class PluginException(Exception):
-	def __init__(self):
-		super().__init__()
+	def __init__(self, msg):
+		super().__init__(msg)

@@ -25,8 +25,6 @@ class Noob_Plugin_Virtual(EventEmitter):
 
 		super().__init__()
 
-		self._handle = lambda err: self.emit('exception', err)
-
 		# self.id = opts.id 	
 		# Compatibility with five bells connector; is this necessary? 
 
@@ -45,6 +43,10 @@ class Noob_Plugin_Virtual(EventEmitter):
 
 		self._log("Initialized Noob Plugin Virtual: {}".format(self.auth))
 
+	def _handle(self, err):
+		self.emit('exception', err)
+		raise err
+
 	def can_connect_to_ledger(self, auth):
 		implement()
 
@@ -55,6 +57,8 @@ class Noob_Plugin_Virtual(EventEmitter):
 		self._expects[tid] = True 
 
 	def _expected_response(self, tid):
+		if tid not in self._expects:
+			self._expect_response(tid)
 		return self._expects[tid]
 
 	def _receive_response(self, tid):
@@ -113,14 +117,16 @@ class Noob_Plugin_Virtual(EventEmitter):
 			self._log('received an ACK on tid: {}'
 				.format(obj['transfer']['id']))
 			# TO-DO: Should accept be fulfill execution condition in OTP
-			self.emit("accept", obj['transfer'], Buffer(obj['message'])) 
+			self.emit("accept", 
+				obj['transfer'], 
+				obj['message'].encode('utf-8') 
 			return Promise.resolve(None)
 
 		elif obj['type'] == 'fulfill_execution_condition' \
 			and not self._fulfilled_transfer(obj['transfer']['id']):
 			self.emit("fulfill_execution_condition", 
 				obj['transfer'], 
-				Buffer(obj['fulfillment']))
+				obj['fulfillment'].encode('utf-8')
 			self._fulfill_transfer(obj['transfer']['id'])
 			return Promise.resolve(None)
 
@@ -128,7 +134,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 			and not self._fulfilled_transfer(obj['transfer']['id']):
 			self.emit('fullfill_cancellation_condition',
 				obj['transfer'],
-				Buffer(obj['fulfillment']))
+				obj['fulfillment'].encode('utf-8')
 			self._fulfill_transfer(obj['transfer']['id'])
 			return Promise.resolve(None)
 
@@ -136,13 +142,17 @@ class Noob_Plugin_Virtual(EventEmitter):
 			and not this._fulfilled_transfer(obj['transfer']['id']):
 			self._log('received a reject on tid: {}'
 				.format(obj['transfer']['id']))
-			self.emit('reject', obj['transfer'], Buffer(obj['message']))
+			self.emit('reject', 
+				obj['transfer'], 
+				obj['message'].encode('utf-8'))
 			return Promise.resolve(None)
 
 		elif obj['type'] == 'reply':
 			self._log('received a reply on tid: {}'
 				.format(obj['transfer']['id']))
-			self.emit('reply', obj['transfer'], Buffer(obj['message']))
+			self.emit('reply', 
+				obj['transfer'], 
+				obj['message'].encode('utf-8'))
 			return Promise.resolve(None)
 
 		elif obj['type'] == 'balance':
@@ -161,7 +171,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 			return Promise.resolve(None)
 
 		else:
-			self._handle(PluginException("Invalid message received"))
+			raise Exception("Invalid message received")
 			return Promise.resolve(None)
 
 	def connect(self):

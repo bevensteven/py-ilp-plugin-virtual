@@ -99,8 +99,8 @@ class Noob_Plugin_Virtual(EventEmitter):
 			return Promise.resolve(None)
 		self.DEBUG = obj # debugging
 		
-		if (obj['type'] == 'transfer' \
-			and not self._seen_transfer(obj['transfer']['id'])):
+		if obj['type'] == 'transfer' \
+			and not self._seen_transfer(obj['transfer']['id']):
 			self._see_transfer(obj['transfer']['id'])
 			self._log('received a Transfer with tid {}'
 				.format(obj['transfer']['id']))
@@ -119,14 +119,14 @@ class Noob_Plugin_Virtual(EventEmitter):
 			# TO-DO: Should accept be fulfill execution condition in OTP
 			self.emit("accept", 
 				obj['transfer'], 
-				obj['message'].encode('utf-8') 
+				obj['message'].encode('utf-8')) 
 			return Promise.resolve(None)
 
 		elif obj['type'] == 'fulfill_execution_condition' \
 			and not self._fulfilled_transfer(obj['transfer']['id']):
 			self.emit("fulfill_execution_condition", 
 				obj['transfer'], 
-				obj['fulfillment'].encode('utf-8')
+				obj['fulfillment'].encode('utf-8'))
 			self._fulfill_transfer(obj['transfer']['id'])
 			return Promise.resolve(None)
 
@@ -134,7 +134,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 			and not self._fulfilled_transfer(obj['transfer']['id']):
 			self.emit('fullfill_cancellation_condition',
 				obj['transfer'],
-				obj['fulfillment'].encode('utf-8')
+				obj['fulfillment'].encode('utf-8'))
 			self._fulfill_transfer(obj['transfer']['id'])
 			return Promise.resolve(None)
 

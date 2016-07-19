@@ -9,7 +9,7 @@ class Balance(EventEmitter):
 
 		self._store = opts['store']
 		self._limit = self._convert(opts['limit'])
-		self._balance = opts.balance
+		self._balance = opts['balance']
 		self._initialized = False 
 		self._field = 'account'
 

@@ -47,6 +47,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		self.balance.on('_balanceChanged', self.on_balance_change)
 		self.balance.on('_settlement', self.on_settlement)
 
+		self._log("Initialized Nerd Plugin Virtual: {}".format(self.auth))
+
 	def on_balance_change(self, balance):
 		self._log('balance changed to ' + balance)
 		self.emit('_balanceChanged')
@@ -94,13 +96,14 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			.format(outgoing_transfer['id']))
 
 		def send_then():
+			print("send_then called")
 			self.connection.send({
 					'type': 'transfer',
 					'transfer': outgoing_transfer
 				})
 
 		return self.transfer_log.store_outgoing(outgoing_transfer) \
-			.then(send_then) \
+			.then(send_then()) \
 				.catch(self._handle)
 
 	def get_info(self):
@@ -169,7 +172,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 					.catch(self._handle)
 
 	def _execute_transfer(self, transfer, fulfillment):
-		fulfillment_buffer = Buffer(fulfillment)
+		fulfillment_buffer = fulfillment.encode('utf-8')
 		self.emit('fulfill_execution_condition', transfer, fulfillment_buffer)
 		# Because there is only one balance kept, 
 		# money is not actually kept in escrow 
@@ -195,7 +198,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 						.catch(self._handle)
 
 	def _cancel_transfer(self, transfer, fulfillment):
-		fulfillment_buffer = Buffer(fulfillment)
+		fulfillment_buffer = fulfillment.encode('utf-8')
 		self.emit('fulfill_cancellation_condition', transfer, fulfillment_buffer)
 		# A cancellation on an outgoing transfer means nothing 
 		# because balances aren't affected until it executes 
@@ -270,18 +273,18 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 		elif obj['type'] == 'acknowledge':
 			self._log('received an ACK on tid: ' + obj['transfer']['id'])
-			self.emit('accept', obj['transfer'], Buffer(obj['message']))
+			self.emit('accept', obj['transfer'], obj['message'].encode('utf-8'))
 			return self._handle_acknowledge(obj['transfer'])
 
 		elif obj['type'] == 'reject':
 			self._log('received a reject on tid: ' + obj['transfer']['id'])
-			self.emit('reject', obj['transfer'], Buffer(obj['message']))
+			self.emit('reject', obj['transfer'], obj['message'].encode('utf-8'))
 			return self._handle_reject(obj['transfer'])
 
 		elif obj['type'] == 'reply':
 			self._log('received a reply on tid: ' + obj['transfer']['id'])
 			def _receive_reply_then(transfer):
-				self.emit('reply', transfer, Buffer(obj['message']))
+				self.emit('reply', transfer, obj['message'].encode('utf-8'))
 				return Promise.resolve(None)
 			return self.transfer_log.get_id(obj['transfer']['id']) \
 				.then(_receive_reply_then)
@@ -289,7 +292,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		elif obj['type'] == 'fulfillment':
 			self._log('received a fulfillment for tid: ' + obj['transfer']['id'])
 			def _receive_fulfillment_then(transfer):
-				self.emit('fulfillment', transfer, Buffer(obj['fulfillment']))
+				self.emit('fulfillment', transfer, obj['fulfillment'].encode('utf-8'))
 				return self._fulfill_condition_local(transfer, obj['fulfillment'])
 			return self.transfer_log.get_id(obj['transfer']['id']) \
 				.then(_receive_fulfillment_then)
@@ -449,7 +452,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		return Promise.all(promises)
 
 	def _log(self, msg):
-		log.log("{}: {}".format(self.auth['account'], message))
+		log.log("{}: {}".format(self.auth['account'], msg))
 
 if __name__ == "__main__":
 	import sys 

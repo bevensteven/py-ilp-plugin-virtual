@@ -103,6 +103,7 @@ class Connection(EventEmitter):
 		def fulfill_send(resolve, reject):
 			self.client.publish(topic=self.send_channel,
 				payload=json.dumps(msg))
+			self._log("PUBLISHED MESSAGE") # debugging
 			self.once("published", lambda: resolve(None))
 
 		return Promise(fulfill_send)

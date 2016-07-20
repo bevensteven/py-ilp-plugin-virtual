@@ -45,7 +45,7 @@ class Transfer_Log(object):
 			JSON.dumps({
 				'transfer': transfer,
 				'type': type
-				}))
+			}))
 
 	def store_outgoing(self, transfer):
 		return self.store(transfer, self.outgoing)

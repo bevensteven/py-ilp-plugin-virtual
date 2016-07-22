@@ -66,23 +66,26 @@ noob.connect()
 
 Sending transfers
 ```sh
-sample_transfer = { 'account': 'https://ledger.example/accounts/connector',
+sample_transfer = { 
+					'account': 'https://ledger.example/accounts/connector',
                     'amount': '10',
                     'cancellationCondition': 'cc:0:3:47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU:0',
                     'executionCondition': 'cc:0:3:47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU:0',
                     'expiresAt': '2016-07-22T00:25:00.000Z',
                     'id': 'sample_transfer',
                     'message': 'hello world',
-                    'data': { "ilp_header": 
-                    					{ "account": "https://blue.ilpdemo.org/ledger/accounts/bob",
-		                              	"ledger": "https://blue.ilpdemo.org/ledger",
-		                              	"amount": "10",
-		                              	"data": { "request_id": "3c5286eb-cc8a-4741-8581-714f3ab1370e",
-                            					"expires_at": "2016-07-22T13:03:51.578Z"
-                   					}
-                     		}
-              		}	
-			}
+                    'data': { 
+                    		 "ilp_header": { 
+	                    		 			"account": "https://blue.ilpdemo.org/ledger/accounts/bob",
+			                              	"ledger": "https://blue.ilpdemo.org/ledger",
+			                              	"amount": "10",
+			                              	"data": { 
+			                              			"request_id": "3c5286eb-cc8a-4741-8581-714f3ab1370e",
+	                            					"expires_at": "2016-07-22T13:03:51.578Z"
+                   						}
+                    	 		}
+              			}	
+				}
 
 # send a transfer from noob to nerd
 noob.send(sample_transfer)

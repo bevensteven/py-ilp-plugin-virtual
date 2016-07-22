@@ -20,6 +20,7 @@ Nerd Plugin - communicates with Noob Plugin and Interledger connectors
 from plugin.nerd_plugin import Nerd_Plugin_Virtual
 from util.utils import Store 
 
+# for the sake of example - read Interledger specs for more details
 storage = Store()
 
 nerd_opt = {

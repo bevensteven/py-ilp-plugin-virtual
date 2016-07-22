@@ -139,7 +139,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 			return Promise.resolve(None)
 
 		elif obj['type'] == 'reject' \
-			and not this._fulfilled_transfer(obj['transfer']['id']):
+			and not self._fulfilled_transfer(obj['transfer']['id']):
 			self._log('received a reject on tid: {}'
 				.format(obj['transfer']['id']))
 			self.emit('reject', 

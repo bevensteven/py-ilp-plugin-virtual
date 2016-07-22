@@ -43,7 +43,7 @@ if __name__ == "__main__":
 	noob_opt = {
 				'auth': {
 					'account': 'Steven',
-					'token': 'test_mqtt',
+					'token': 'bf9938bcf57b8e1c5a713b08fd8a5a87',
 					'host': 'broker.hivemq.com'
 				}
 			}
@@ -57,14 +57,24 @@ if __name__ == "__main__":
 	noob.connect()
 
 	# send a transfer from nerd to noob
-	sample_transfer = {   'account': 'https://ledger.example/accounts/connector',
+	sample_transfer = { 'account': 'https://ledger.example/accounts/connector',
 	                    'amount': '10',
 	                    'cancellationCondition': 'cc:0:3:47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU:0',
 	                    'executionCondition': 'cc:0:3:47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU:0',
 	                    'expiresAt': '2016-07-22T00:25:00.000Z',
 	                    'id': 'sample_transfer',
-	                    'message': 'hello world'
-				}
+	                    'message': 'hello world',
+	                    'data': { "ilp_header": 
+	                    					{ "account": "https://blue.ilpdemo.org/ledger/accounts/bob",
+	                              	"ledger": "https://blue.ilpdemo.org/ledger",
+	                              	"amount": "10",
+	                              	"data": { "request_id": "3c5286eb-cc8a-4741-8581-714f3ab1370e",
+	                                					"expires_at": "2016-07-22T13:03:51.578Z"
+				                       					}
+				                     	}
+				                  		}
+										}
+				
 
 	time.sleep(2)
 	nerd.send(sample_transfer)

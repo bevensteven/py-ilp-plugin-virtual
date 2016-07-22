@@ -395,7 +395,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 	def _handle_acknowledge(self, transfer):
 
 		def _handle_acknowledge_then(stored_transfer):
-			if Transfer.equals(stored_transfer, transfer):
+			if equals(stored_transfer, transfer):
 				return self.transfer_log.is_complete(transfer)
 			else:
 				self._false_acknowledge(transfer)

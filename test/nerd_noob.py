@@ -62,9 +62,9 @@ if __name__ == "__main__":
 	                    'cancellationCondition': 'cc:0:3:47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU:0',
 	                    'executionCondition': 'cc:0:3:47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU:0',
 	                    'expiresAt': '2016-07-22T00:25:00.000Z',
-	                    'id': 'https//ledger.example/transfers/123',
+	                    'id': 'sample_transfer',
 	                    'message': 'hello world'
 				}
 
-	time.sleep(1)
-	noob.send(sample_transfer)
+	time.sleep(2)
+	nerd.send(sample_transfer)

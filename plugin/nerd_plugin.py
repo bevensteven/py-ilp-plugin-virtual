@@ -278,8 +278,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		if obj['type'] == 'transfer':
 			self._log('received a Transfer with tid: ' + obj['transfer']['id'])
 			self.emit('receive', obj['transfer'])
-			self.DEBUG = self._handle_transfer(obj['transfer'])
-			return self.DEBUG
+			return self._handle_transfer(obj['transfer'])
 
 		elif obj['type'] == 'acknowledge':
 			self._log('received an ACK on tid: ' + obj['transfer']['id'])
@@ -373,13 +372,10 @@ class Nerd_Plugin_Virtual(EventEmitter):
 				return Promise.resolve(None)
 
 		def is_valid_incoming_then(valid):
-			def is_valid_then(x):
-				print("is_valid_then called")
+			def is_valid_then(_):
 				self._handle_timer(transfer)
 				self._accept_transfer(transfer)
-				print("end of is_valid_then")
 			if valid:
-				print("is_valid_incoming_then is valid, accepted transfer")
 				return self.balance.sub(transfer['amount']) \
 					.then(is_valid_then)
 			else:
@@ -387,8 +383,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 		return self.transfer_log.get(transfer) \
 			.then(_handle_transfer_then) \
-				.then(lambda x: self.transfer_log.store_incoming(transfer)) \
-					.then(lambda x: self.balance.is_valid_incoming(transfer['amount'])) \
+				.then(lambda _: self.transfer_log.store_incoming(transfer)) \
+					.then(lambda _: self.balance.is_valid_incoming(transfer['amount'])) \
 						.then(is_valid_incoming_then) \
 							.catch(self._handle)
 
@@ -401,13 +397,14 @@ class Nerd_Plugin_Virtual(EventEmitter):
 				self._false_acknowledge(transfer)
 
 		def is_complete_transfer_then(is_complete):
+			self.DEBUG = transfer
 			if is_complete:
 				self._false_acknowledge(transfer)
 				# don't add to balance yet if it's UTP/ATP transfer 
 			elif not transfer['executionCondition']:
 				self.balance.add(transfer['amount'])
 
-		def acknowledge_transfer_then():
+		def acknowledge_transfer_then(_):
 			self._handle_timer(transfer)
 			self._complete_transfer(transfer)
 
@@ -434,11 +431,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 					.then(timer_then) \
 						.catch(self._handle)
 
-			# find a setTimeout function for Python (implement in utils.py)
-			print("expiry = {}".format(expiry))
-			print("now = {}".format(now))
-			print("timeout = {}".format(expiry - now))
-			self.timers[transfer['id']] = Timer(5, timer).start()
+			self.timers[transfer['id']] = Timer(5, timer)
+			self.timers[transfer['id']].start()
 			# for debugging purposes 
 			self.emit('_timing', transfer['id'])
 
@@ -461,7 +455,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 	def _complete_transfer(self, transfer):
 		promises = list(self.transfer_log.complete(transfer))
-		if not transfer['executeCondition']:
+		if not transfer['executionCondition']:
 			promises.append(self.transfer_log.fulfill(transfer))
 		return Promise.all(promises)
 

@@ -74,6 +74,8 @@ class Noob_Plugin_Virtual(EventEmitter):
 		self._fulfilled[tid] = True 
 
 	def _fulfilled_transfer(self, tid):
+		if tid not in self._fulfilled:
+			self._fulfilled[tid] = False
 		return self._fulfilled[tid]
 
 	def _receive(self, obj):

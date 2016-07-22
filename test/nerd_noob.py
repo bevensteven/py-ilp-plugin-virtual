@@ -27,7 +27,7 @@ if __name__ == "__main__":
 	nerd_opt = {
 				'auth': {
 					'account': 'Eli',
-					'token': 'test_mqtt',
+					'token': 'bf9938bcf57b8e1c5a713b08fd8a5a87',
 					'host': 'broker.hivemq.com',
 					'limit': '1000',
 					'balance': 1000,
@@ -74,7 +74,6 @@ if __name__ == "__main__":
 				                     	}
 				                  		}
 										}
-				
-
+		
 	time.sleep(2)
-	nerd.send(sample_transfer)
+	noob.send(sample_transfer)

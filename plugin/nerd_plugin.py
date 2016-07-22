@@ -447,7 +447,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 	def _reject_transfer(self, transfer, reason):
 		self._log('sending out a reject for tid: ' + transfer['id'])
 		self._complete_transfer(transfer)
-		return self.conneciton.send({
+		return self.connection.send({
 				'type': 'reject',
 				'transfer': transfer,
 				'message': reason

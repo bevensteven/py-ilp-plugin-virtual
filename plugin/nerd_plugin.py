@@ -198,8 +198,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 		return self.transfer_log.get_type(transfer) \
 			.then(_execute_transfer_then) \
-				.then(lambda: self.transfer_log.fulfill(transfer)) \
-					.then(lambda: self.connection.send({
+				.then(lambda _: self.transfer_log.fulfill(transfer)) \
+					.then(lambda _: self.connection.send({
 							'type': 'fulfill_execution_condition',
 							'transfer': transfer,
 							'fulfillment': fulfillment
@@ -218,8 +218,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 		return self.transfer_log.get_type(transfer) \
 			.then(_cancel_transfer_then) \
-				.then(lambda: self.transfer_log.fulfill(transfer)) \
-					.then(lambda: self.connection.send({
+				.then(lambda _: self.transfer_log.fulfill(transfer)) \
+					.then(lambda _: self.connection.send({
 							'type': 'fulfill_cancellation_condition',
 							'transfer': transfer,
 							'fulfillment': fulfillment
@@ -251,7 +251,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 				.then(lambda: self.transfer_log.fulfill(transfer)) \
 					.then(_fulfill_transfer_then)
 
-	def get_balance():
+	def get_balance(self):
 		return self.balance.get()
 
 	def reply_to_transfer(self, transfer_id, reply_message):
@@ -320,6 +320,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 		def _handle_reject_then(exists):
 			if exists:
+				print("_handle_reject_then exists")
 				self._complete_transfer(transfer)
 			else:
 				self.emit('_falseReject', transfer) 

@@ -26,7 +26,7 @@ if __name__ == "__main__":
 	storage = Store()
 	nerd_opt = {
 				'auth': {
-					'account': 'Eli',
+					'account': 'Evan',
 					'token': 'bf9938bcf57b8e1c5a713b08fd8a5a87',
 					'host': 'broker.hivemq.com',
 					'limit': '1000',
@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
 	noob_opt = {
 				'auth': {
-					'account': 'Steven',
+					'account': 'Aryan',
 					'token': 'bf9938bcf57b8e1c5a713b08fd8a5a87',
 					'host': 'broker.hivemq.com'
 				}
@@ -77,3 +77,4 @@ if __name__ == "__main__":
 		
 	time.sleep(2)
 	noob.send(sample_transfer)
+

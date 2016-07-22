@@ -70,7 +70,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 	def _seen_transfer(self, tid):
 		return tid in self._seen
 
-	def _fulfill_transfer(self, id):
+	def _fulfill_transfer(self, tid):
 		self._fulfilled[tid] = True 
 
 	def _fulfilled_transfer(self, tid):

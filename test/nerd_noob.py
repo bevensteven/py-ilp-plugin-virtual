@@ -72,7 +72,7 @@ if __name__ == "__main__":
 	                                					"expires_at": "2016-07-22T13:03:51.578Z"
 				                       					}
 				                     	}
-				                  		}
+				                 }
 										}
 		
 	time.sleep(2)

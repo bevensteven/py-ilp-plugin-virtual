@@ -2,7 +2,7 @@
 
 > ILP virtual ledger plugin for directly transacting connectors 
 
-> Pythonic offshoot of ```js-ilp-plugin-virtual```
+> Pythonic spin-off of ```js-ilp-plugin-virtual```
 
 ## Installation 
 

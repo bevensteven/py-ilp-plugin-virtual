@@ -1,6 +1,10 @@
 from pymitter import EventEmitter 
 from promise import Promise
 from datetime import datetime
+from threading import Timer 
+
+import dateutil.parser
+import pytz
 
 from util.log import Logger 
 from util.utils import implement, PluginException
@@ -24,7 +28,12 @@ class Nerd_Plugin_Virtual(EventEmitter):
 	def __init__(self, opts):
 		super().__init__()
 
+		# DEBUGGING 
+		self.DEBUG = None
+
 		self._handle = lambda err: self.emit('exception', err)
+		on_exception = lambda err: self._log('Exception {}'.format(err))
+		self.on('exception', on_exception)
 
 		# self.id = opts['id'] # compatibility with five-bells-connector? 
 		self.auth = opts['auth']
@@ -67,8 +76,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 		def fulfill_connect(resolve, reject):
 			def noob_connect():
-				self.emit('connect')
 				self.connected = True 
+				self.emit('connect')
 				resolve(None)
 			self.connection.on('connect')
 
@@ -77,8 +86,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 	def disconnect(self):
 
 		def fulfill_disconnect():
-			self.emit('disconnect')
 			self.connected = False 
+			self.emit('disconnect')
 			return Promise.resolve(None)
 
 		return self.connection.disconnect.then(success=fulfill_disconnect)
@@ -96,7 +105,6 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			.format(outgoing_transfer['id']))
 
 		def send_then():
-			print("send_then called")
 			self.connection.send({
 					'type': 'transfer',
 					'transfer': outgoing_transfer
@@ -153,7 +161,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			execute = transfer['executionCondition']
 			cancel = transfer['cancellationCondition']
 
-			time = str(datetime.now())
+			# FIX DATETIME ISSUES HERE 
+			time = str(datetime.isoformat(datetime.now()))
 			expires_at = str(datetime(transfer['expiresAt']))
 			timed_out = time > expires_at
 			
@@ -269,7 +278,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		if obj['type'] == 'transfer':
 			self._log('received a Transfer with tid: ' + obj['transfer']['id'])
 			self.emit('receive', obj['transfer'])
-			return self._handle_transfer(obj['transfer'])
+			self.DEBUG = self._handle_transfer(obj['transfer'])
+			return self.DEBUG
 
 		elif obj['type'] == 'acknowledge':
 			self._log('received an ACK on tid: ' + obj['transfer']['id'])
@@ -328,7 +338,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 					'balance': balance 
 				})
 
-		return selt.balance.get() \
+		return self.balance.get() \
 			.then(_send_balance_then)
 
 	def _send_settle(self):
@@ -363,12 +373,13 @@ class Nerd_Plugin_Virtual(EventEmitter):
 				return Promise.resolve(None)
 
 		def is_valid_incoming_then(valid):
-
-			def is_valid_then():
+			def is_valid_then(x):
+				print("is_valid_then called")
 				self._handle_timer(transfer)
 				self._accept_transfer(transfer)
-
+				print("end of is_valid_then")
 			if valid:
+				print("is_valid_incoming_then is valid, accepted transfer")
 				return self.balance.sub(transfer['amount']) \
 					.then(is_valid_then)
 			else:
@@ -376,8 +387,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 		return self.transfer_log.get(transfer) \
 			.then(_handle_transfer_then) \
-				.then(lambda: self.transfer_log.store_incoming(transfer)) \
-					.then(lambda: self.balance.is_valid_incoming(transfer.amount)) \
+				.then(lambda x: self.transfer_log.store_incoming(transfer)) \
+					.then(lambda x: self.balance.is_valid_incoming(transfer['amount'])) \
 						.then(is_valid_incoming_then) \
 							.catch(self._handle)
 
@@ -411,8 +422,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 	def _handle_timer(self, transfer):
 		if transfer['expiresAt']:
-			now = datetime.now()
-			expiry = datetime(transfer['expiresAt'])
+			now = datetime.now(pytz.utc)
+			expiry = dateutil.parser.parse(transfer['expiresAt'])
 
 			def timer():
 				def timer_then(is_fulfilled):
@@ -424,7 +435,10 @@ class Nerd_Plugin_Virtual(EventEmitter):
 						.catch(self._handle)
 
 			# find a setTimeout function for Python (implement in utils.py)
-			self.timers[transfer['id']] = setTimeout(timer, expiry - now)
+			print("expiry = {}".format(expiry))
+			print("now = {}".format(now))
+			print("timeout = {}".format(expiry - now))
+			self.timers[transfer['id']] = Timer(5, timer).start()
 			# for debugging purposes 
 			self.emit('_timing', transfer['id'])
 

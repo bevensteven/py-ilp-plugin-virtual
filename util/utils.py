@@ -25,7 +25,7 @@ class Store(object):
 		self.storage[key] = value
 		promise = Promise()
 		promise.fulfill(None)
-		return promise
+		return Promise.resolve(None)
 
 	def get(self, key):
 		obj = self.storage.get(key, None)

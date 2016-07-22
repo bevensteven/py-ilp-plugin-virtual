@@ -179,8 +179,8 @@ class Noob_Plugin_Virtual(EventEmitter):
 
 		def fulfill_connect(resolve, reject):
 			def noob_connect():
-				self.emit('connect')
 				self.connected = True 
+				self.emit('connect')
 				resolve(None)
 			self.connection.on('connect', noob_connect())
 
@@ -189,8 +189,8 @@ class Noob_Plugin_Virtual(EventEmitter):
 	def disconnect(self):
 
 		def fulfill_disconnect():
-			self.emit('disconnect')
 			self.connected = False 
+			self.emit('disconnect')
 			return Promise.resolve(None)
 
 		return self.connection.disconnect().then(success=fulfill_disconnect)

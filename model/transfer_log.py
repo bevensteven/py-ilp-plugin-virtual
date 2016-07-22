@@ -1,4 +1,5 @@
 import json as JSON
+from promise import Promise
 
 class Transfer_Log(object):
 
@@ -41,6 +42,7 @@ class Transfer_Log(object):
 		return self.get_type_id(transfer['id'])
 
 	def store(self, transfer, type):
+		print("Storing , transfer: {}, type: {}".format(transfer, type))
 		return self._put('t' + transfer['id'],
 			JSON.dumps({
 				'transfer': transfer,

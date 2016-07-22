@@ -11,7 +11,7 @@ Please use Python 3.5
 ```sh
 git clone https://github.com/bevensteven/py-ilp-plugin-virtual
 cd py-ilp-plugin-virtual
-python3 setup.py install 
+python3.5 setup.py install 
 ```
 
 ## Usage 

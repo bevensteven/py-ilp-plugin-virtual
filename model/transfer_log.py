@@ -4,13 +4,13 @@ from promise import Promise
 class Transfer_Log(object):
 
 	def __init__(self, store):
-		# self._get = store['get']
-		# self._put = store['put']
-		# self._del = store['del']
+		self._get = store.get
+		self._put = store.put
+		self._del = store.delete
 		# For trial purposes
-		self._get = store.get("get", lambda: None)
-		self._put = store.get("put", lambda: None)
-		self._del = store.get("del", lambda: None)
+		# self._get = store.get("get", lambda: None)
+		# self._put = store.get("put", lambda: None)
+		# self._del = store.get("del", lambda: None)
 
 		self.incoming = 'i'
 		self.outgoing = 'o'

@@ -28,23 +28,19 @@ if __name__ == "__main__":
 				'auth': {
 					'account': 'Evan',
 					'token': 'bf9938bcf57b8e1c5a713b08fd8a5a87',
-					'host': 'broker.hivemq.com',
+					'host': 'test.mosquitto.org',
 					'limit': '1000',
 					'balance': 1000,
 					'secret': 'not used yet'
 				},
-				'store': {
-					'get': storage.get,
-					'put': storage.put,
-					'del': storage.delete
-				}
+				'store': storage
 			}
 
 	noob_opt = {
 				'auth': {
 					'account': 'Aryan',
 					'token': 'bf9938bcf57b8e1c5a713b08fd8a5a87',
-					'host': 'broker.hivemq.com'
+					'host': 'test.mosquitto.org'
 				}
 			}
 

@@ -19,9 +19,9 @@ class Balance(EventEmitter):
 		def initialize_then(balance):
 			# check if balance is undefined
 			if not balance:
-				return self._store['put'](self._field, self._balance)
+				return self._store.put(self._field, self._balance)
 
-		return self._store['get'](self._field).then(initialize_then)
+		return self._store.get(self._field).then(initialize_then)
 
 	def _get_number(self):
 		return self.get().then(lambda balance: Decimal(balance))
@@ -36,7 +36,7 @@ class Balance(EventEmitter):
 		promise = Promise.resolve(None)
 		if not self._initialized:
 			promise = self._initialize()
-		return promise.then(lambda x: self._store['get'](self._field))
+		return promise.then(lambda x: self._store.get(self._field))
 
 	def add(self, amount_string):
 		amount = self._convert(amount_string)
@@ -44,7 +44,7 @@ class Balance(EventEmitter):
 		def add_then(balance):
 			new_balance = str(balance + amount)
 			self.emit('_balanceChanged', new_balance)
-			self._store['put'](self._field, new_balance)
+			self._store.put(self._field, new_balance)
 			return Promise.resolve(new_balance)
 
 		return self._get_number().then(add_then)

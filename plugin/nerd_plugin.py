@@ -69,7 +69,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		self._send_settle()
 
 	def get_account(self):
-		return self.augh['account']
+		return self.auth['account']
 
 	def connect(self):
 		self.connection.connect()

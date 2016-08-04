@@ -236,6 +236,9 @@ class Noob_Plugin_Virtual(EventEmitter):
 
 		return Promise(fulfill_get_info)
 
+	def get_account(self):
+		return self.auth['account']
+
 	def fulfill_condition(self, transfer_id, fulfillment):
 		return self.connection.send({
 				"type": "fulfillment",

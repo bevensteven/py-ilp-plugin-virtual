@@ -6,7 +6,17 @@ from promise import Promise
 from plugin.nerd_plugin import Nerd_Plugin_Virtual
 from plugin.noob_plugin import Noob_Plugin_Virtual
 from plugin.plugin import Plugin_Virtual
+from util.log import Logger 
 from util.utils import Store 
+
+
+log = Logger("[ TEST ]")
+
+def test(msg):
+	log.log('>>> ' + msg + ' <<<')
+
+def handle(msg):
+	log.error(msg)
 
 class TestNerd(unittest.TestCase):
 
@@ -47,51 +57,58 @@ class TestNerd(unittest.TestCase):
 		del self.noob
 
 	def test_get_account(self):
+		test("running get_account for compatibility check")
 		self.assertEqual(self.nerd.get_account(), 'nerd')
+		self.assertEqual(self.noob.get_account(), 'noob')
 
 	def test_connection(self):
+		test("should connect to the mosquitto server")
 		NEXT = Promise.all([
 				self.noob.connect(),
 				self.nerd.connect()
-			]).then(lambda x: done())
+			])
 
-	def test_connection_log(self):
-		NEXT = self.nerd.connection._handle('fake error!')
+		test("should be able to log errors in the connnection")
+		self.nerd.connection._handle('fake error!')
 
-	# def test_initial_balance(self):
-	# 	def test_initial_balance(balance):
-	# 		self.assertEqual(balance, 0)
-	# 	NEXT = Promise.then(lambda res: nerd.get_balance()) \
-	# 			.then(test_initial_balance_then) \
-	# 				.catch(handle)
+	def test_initial_balance(self):
+		def test_initial_balance_then(balance):
+			self.assertEqual(balance, str(0))
+		NEXT = Promise().resolve(None).then(lambda res: self.nerd.get_balance()) \
+				.then(test_initial_balance_then) \
+					.catch(handle)
 
 	def test_get_info(self):
+		NEXT = Promise.all([
+				self.noob.connect(),
+				self.nerd.connect()
+			])
 		def test_get_info_chain():
-			noob.get_connectors()
-			nerd.get_connectors()
+			self.noob.get_connectors()
+			self.nerd.get_connectors()
 		NEXT = NEXT.then(test_get_info_chain)
 
-	def test_check_connection(self):
-		def check_connection():
-			self.assertTrue(noob.is_connected())
-			self.assertTrue(nerd.is_connected())
-		NEXT = NEXT.then(check_connection)
+	# def test_check_connection(self):
+	# 	def check_connection():
+	# 		self.assertTrue(noob.is_connected())
+	# 		self.assertTrue(nerd.is_connected())
+	# 	NEXT = NEXT.then(check_connection)
 
-	def test_valid_trasnfer(self):
-		def valid_transfer():
-			return noob.send({
-					'id': 'first',
-					'account': 'x',
-					'amount': '10'
-				})
-		def valid_transfer_then():
-			def resolver(resolve, reject):
-				def on_receive(transfer, message):
-					assert(transfer['id'] == 'first')
-				self.noob.once('receive', on_receive)
-			return Promise(resolver)
-		NEXT = NEXT.then(valid_transfer) \
-						.then(valid_transfer_then)
+	# def test_valid_trasnfer(self):
+	# 	def valid_transfer():
+	# 		return noob.send({
+	# 				'id': 'first',
+	# 				'account': 'x',
+	# 				'amount': '10'
+	# 			})
+	# 	def valid_transfer_then():
+	# 		def resolver(resolve, reject):
+	# 			def on_receive(transfer, message):
+	# 				assert(transfer['id'] == 'first')
+	# 			self.noob.once('receive', on_receive)
+	# 		return Promise(resolver)
+	# 	NEXT = NEXT.then(valid_transfer) \
+	# 					.then(valid_transfer_then)
 
 	# def test_correct_balance(self):
 	# 	def assert_balance(balance):

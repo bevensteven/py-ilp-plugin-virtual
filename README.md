@@ -4,7 +4,7 @@
 
 > Pythonic spin-off of ```js-ilp-plugin-virtual```
 
-> Follows Interledger plugin interface https://interledger.org/rfcs/0004-ledger-plugin-interface/
+> Implements Interledger plugin interface https://interledger.org/rfcs/0004-ledger-plugin-interface/
 
 ## Installation 
 

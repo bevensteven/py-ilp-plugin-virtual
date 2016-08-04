@@ -79,7 +79,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 				self.connected = True 
 				self.emit('connect')
 				resolve(None)
-			self.connection.on('connect')
+			self.connection.on('connect', noob_connect())
 
 		return Promise(fulfill_connect)	
 
@@ -90,7 +90,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			self.emit('disconnect')
 			return Promise.resolve(None)
 
-		return self.connection.disconnect.then(success=fulfill_disconnect)
+		return self.connection.disconnect().then(success=fulfill_disconnect)
 
 	def is_connected(self):
 		return self.connected 

@@ -1,6 +1,7 @@
 import unittest 
 import binascii
 import os
+import time
 from promise import Promise
 
 from plugin.nerd_plugin import Nerd_Plugin_Virtual
@@ -47,6 +48,10 @@ class TestNerd(unittest.TestCase):
 		}
 		self.noob = Plugin_Virtual(noob_opt)
 
+		self.noob.connect()
+		self.nerd.connect()
+
+	def test_plugins(self):
 		self.assertIsInstance(self.nerd, Nerd_Plugin_Virtual)
 		self.assertIsInstance(self.noob, Noob_Plugin_Virtual)
 
@@ -62,11 +67,16 @@ class TestNerd(unittest.TestCase):
 		self.assertEqual(self.noob.get_account(), 'noob')
 
 	def test_connection(self):
+
 		test("should connect to the mosquitto server")
 		NEXT = Promise.all([
 				self.noob.connect(),
 				self.nerd.connect()
 			])
+
+		test("check connectivity")
+		self.assertTrue(self.noob.is_connected())
+		self.assertTrue(self.nerd.is_connected())
 
 		test("should be able to log errors in the connnection")
 		self.nerd.connection._handle('fake error!')
@@ -79,20 +89,9 @@ class TestNerd(unittest.TestCase):
 					.catch(handle)
 
 	def test_get_info(self):
-		NEXT = Promise.all([
-				self.noob.connect(),
-				self.nerd.connect()
-			])
-		def test_get_info_chain():
-			self.noob.get_connectors()
-			self.nerd.get_connectors()
-		NEXT = NEXT.then(test_get_info_chain)
-
-	# def test_check_connection(self):
-	# 	def check_connection():
-	# 		self.assertTrue(noob.is_connected())
-	# 		self.assertTrue(nerd.is_connected())
-	# 	NEXT = NEXT.then(check_connection)
+		test("calling get_connectors")
+		self.noob.get_connectors()
+		self.nerd.get_connectors()
 
 	# def test_valid_trasnfer(self):
 	# 	def valid_transfer():

@@ -93,21 +93,25 @@ class TestNerd(unittest.TestCase):
 		self.noob.get_connectors()
 		self.nerd.get_connectors()
 
-	# def test_valid_trasnfer(self):
-	# 	def valid_transfer():
-	# 		return noob.send({
-	# 				'id': 'first',
-	# 				'account': 'x',
-	# 				'amount': '10'
-	# 			})
-	# 	def valid_transfer_then():
-	# 		def resolver(resolve, reject):
-	# 			def on_receive(transfer, message):
-	# 				assert(transfer['id'] == 'first')
-	# 			self.noob.once('receive', on_receive)
-	# 		return Promise(resolver)
-	# 	NEXT = NEXT.then(valid_transfer) \
-	# 					.then(valid_transfer_then)
+	def test_valid_transfer(self):
+		def valid_transfer():
+			return self.noob.send({
+					'id': 'first',
+					'account': 'x',
+					'amount': '10'
+				})
+		def valid_transfer_then():
+			def resolver(resolve, reject):
+				def on_receive(transfer, message):
+					print("received")
+					self.assertTrue(transfer['id'] == 'first')
+				self.noob.once('receive', on_receive)
+				resolve(None)
+			return Promise(resolver)
+
+		test("sending valid transfer from noob")
+		valid_transfer() \
+			.then(valid_transfer_then)
 
 	# def test_correct_balance(self):
 	# 	def assert_balance(balance):

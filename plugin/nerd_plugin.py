@@ -245,7 +245,6 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 	def _execute_transfer(self, transfer, fulfillment):
 		fulfillment_buffer = fulfillment.encode('utf-8')
-		self.emit('fulfill_execution_condition', transfer, fulfillment_buffer)
 		# Because there is only one balance kept, 
 		# money is not actually kept in escrow 
 		# although it behaves as though it were 
@@ -253,21 +252,23 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 		def _execute_transfer_then(type):
 			if type == self.transfer_log.outgoing:
+				self.emit('outgoing_fulfill', transfer, fulfillment_buffer)
 				return self.balance.add(transfer['amount'])
-			elif type == self.transfer_log.incoming:
-				return self.balance.sub(transfer['amount'])
 			else:
-				raise Exception("nonexistent transfer type")
+				self.emit('incoming_fulfill', transfer, fulfillment_buffer)
+				return Promise.resolve(None)
 
 		return self.transfer_log.get_type(transfer) \
-			.then(_execute_transfer_then) \
-				.then(lambda _: self.transfer_log.fulfill(transfer)) \
-					.then(lambda _: self.connection.send({
-							'type': 'fulfill_execution_condition',
-							'transfer': transfer,
-							'fulfillment': fulfillment
-						})) \
-						.catch(self._handle)
+				.then(_execute_transfer_then) \
+					.then(lambda _: self.transfer_log.fulfill(transfer)) \
+						.then(lambda: self.transfer_log.get_type(transfer))
+							.then(lambda type: self.connection.send({
+									'type': 'fulfill_execution_condition',
+									'toNerd': type == self.transfer_log.incoming,
+									'transfer': transfer,
+									'fulfillment': fulfillment
+								})) \
+								.catch(self._handle)
 
 	def _cancel_transfer(self, transfer, fulfillment):
 		fulfillment_buffer = fulfillment.encode('utf-8')
@@ -295,24 +296,30 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		def _timeout_transfer_then(type):
 			transaction_type = type 
 			if type == self.transfer_log.incoming:
+				self.emit('incoming_cancel', transfer, 'timed out')
 				return self.balance.add(transfer['amount'])
-
-		def _fulfill_transfer_then():
-			# potential problem here: figure out how to get transaction_type
-			# into the scope of this callback 
-			if transaction_type == self.transfer_log.incoming:
-				return self.connection.send({
-						'type': 'reject',
-						'transfer': transfer,
-						'message': 'timed out'
-					})
 			else:
-				return Promise.resolve(None)
+				self.emit('outgoing_cancel', transfer, 'timed out')
 
 		return self.transfer_log.get_type(transfer) \
 			.then(_timeout_transfer_then) \
 				.then(lambda: self.transfer_log.fulfill(transfer)) \
-					.then(_fulfill_transfer_then)
+					.then(lambda: self.connection.send({
+							"type": "reject",
+							"toNerd": transaction_type == self.transfer_log.incoming,
+							"transfer": transfer,
+							"message": "timed out"
+						}))
+
+	def get_prefix(self):
+		return Promise.resolve(self.prefix)				
+
+	def _send_prefix(self):
+		return self.get_prefix() \
+				.then(self.connection.send({
+						"type": 'prefix',
+						"prefix": prefix
+					}))
 
 	def get_balance(self):
 		return self.balance.get()
@@ -339,21 +346,29 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		'''
 
 		if obj['type'] == 'transfer':
+
 			self._log('received a Transfer with tid: ' + obj['transfer']['id'])
-			self.emit('receive', obj['transfer'])
 			return self._handle_transfer(obj['transfer'])
 
 		elif obj['type'] == 'acknowledge':
+
 			self._log('received an ACK on tid: ' + obj['transfer']['id'])
-			self.emit('accept', obj['transfer'], obj['message'].encode('utf-8'))
+			self.emit('_accepted', obj['transfer'])
+			if obj['transfer']['executionCondition']:
+				self.emit('outgoing_prepare', obj['transfer'], obj['message'].encode('utf-8'))
+			else:
+				self.emit('ougoing_transfer', obj['transfer'], obj['message'].encode('utf-8'))
 			return self._handle_acknowledge(obj['transfer'])
 
 		elif obj['type'] == 'reject':
+
 			self._log('received a reject on tid: ' + obj['transfer']['id'])
-			self.emit('reject', obj['transfer'], obj['message'].encode('utf-8'))
+			self.emit('_rejected', obj['transfer'])
+			self.emit('outgoing_cancel', obj['transfer'], obj['message'].encode('utf-8'))
 			return self._handle_reject(obj['transfer'])
 
 		elif obj['type'] == 'reply':
+
 			self._log('received a reply on tid: ' + obj['transfer']['id'])
 			def _receive_reply_then(transfer):
 				self.emit('reply', transfer, obj['message'].encode('utf-8'))
@@ -362,6 +377,7 @@ class Nerd_Plugin_Virtual(EventEmitter):
 				.then(_receive_reply_then)
 
 		elif obj['type'] == 'fulfillment':
+
 			self._log('received a fulfillment for tid: ' + obj['transfer']['id'])
 			def _receive_fulfillment_then(transfer):
 				self.emit('fulfillment', transfer, obj['fulfillment'].encode('utf-8'))
@@ -369,12 +385,26 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			return self.transfer_log.get_id(obj['transfer']['id']) \
 				.then(_receive_fulfillment_then)
 
+		elif obj['type'] == 'manual_reject':
+
+			self._log('received a manual reject for tid: ' + obj['transfer']['id'])
+			return self._handle_manual_reject(obj['transfer']['id'], obj['message'])
+
 		elif obj['type'] == 'balance':
+
 			self._log('received a query for the balance...')
 			return self._send_balance()
 
 		elif obj['type'] == 'info':
 			return self._send_info()
+
+		elif obj['type'] == 'prefix':
+			return self._send_prefix()
+
+		elif obj['type'] == 'settled':
+
+			self._log('settled for amount ' + obj['transfer']['amount'])
+			return self._outgoing_settle(obj['transfer'])
 
 		else:
 			self._handle(Exception('Invalid message received'))
@@ -391,6 +421,48 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 		return self.transfer_log.exists(transfer) \
 			.then(_handle_reject_then)
+
+	def _handle_manual_reject(self, transfer_id, message):
+		transfer = None 
+
+		def check_transfer_exists(stored_transfer):
+			transfer = stored_transfer
+			if not transfer or not transfer['executionCondition']:
+				self._send_manual_reject_failure(transfer_id,
+					'must be an existing transfer with a condition')
+				raise Exception 
+			else:
+				return self.transfer_log.get_type(transfer)
+
+		def check_transfer_incoming(type):
+			if type != self.transfer_log.outgoing:
+				self._send_manual_reject_failure(transfer['id'], 
+					'transfer must be incoming') 
+			else:
+				return self.transfer_log.fulfill(transfer)
+
+		def emit():
+			self.emit('outgoing_reject', transfer, message)
+			self._send_manual_reject_success(transfer, message)
+
+		return self.transfer_log.get_id(transfer_id) \
+				.then(check_transfer_exists) \
+					.then(check_transfer_incoming) \
+						.then(emit)
+
+	def _send_manual_reject_failure(self, transfer_id, message):
+		return self.connection.send({
+				"type": "manual_reject_failure",
+				"id": transfer_id,
+				"message": message
+			})
+
+	def _send_manual_reject_success(self, transfer, message):
+		return self.connection.send({
+				"type": "manual_reject_success",
+				"transfer": transfer,
+				"message": message
+			})
 
 	def _send_balance(self):
 
@@ -439,7 +511,10 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			def is_valid_then(_):
 				self._handle_timer(transfer)
 				self._accept_transfer(transfer)
-			if valid:
+			valid_amount = type(transfer['amount']) is str \
+					and float(transfer['amount']) is not float('NaN')
+			valid_account = type(transfer['account']) == str
+			if valid and valid_amount and valid_account:
 				return self.balance.sub(transfer['amount']) \
 					.then(is_valid_then)
 			else:
@@ -502,17 +577,27 @@ class Nerd_Plugin_Virtual(EventEmitter):
 
 	def _accept_transfer(self, transfer):
 		self._log('sending out an ACK for tid: ' + transfer['id'])	
-		return self.connection.send({
-				'type': 'acknowledge',
-				'transfer': transfer,
-				'message': 'transfer accepted'
-			})
+
+		def transfer_direction(direction):
+			dir = "incoming" if (direction == self.transfer_log.incoming) \
+					else "outgoing"
+			type = 'prepare' if transfer['executionCondition'] else 'transfer'
+			self.emit(dir + '_' + type, transfer)
+			return self.connection.send({
+					'type': 'acknowledge',
+					'transfer': transfer,
+					'message': 'transfer accepted'
+				})
+
+		return self.transfer_log.get_type(transfer) \
+				.then(transfer_direction)
 
 	def _reject_transfer(self, transfer, reason):
 		self._log('sending out a reject for tid: ' + transfer['id'])
 		self._complete_transfer(transfer)
 		return self.connection.send({
 				'type': 'reject',
+				'toNerd': True,
 				'transfer': transfer,
 				'message': reason
 			})
@@ -522,6 +607,21 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		if not transfer['executionCondition']:
 			promises.append(self.transfer_log.fulfill(transfer))
 		return Promise.all(promises)
+
+	def _get_settle_amount(self, balance):
+		balance_number = float(balance)
+		limit_number = float(self.limit)
+
+		# amount that balance must increase by 
+		return (balance_number - (balance_number - limit_number) / 2) + ''
+
+	def _outgoing_settle(self, transfer):
+		return self.balance.sub(transfer['amount']) \
+				.then(lambda: self._send_balance)
+
+	def _incoming_settle(self, transfer):
+		return self.balance.add(transfer['amount']) \
+				.then(self._send_balance)
 
 	def _log(self, msg):
 		log.log("{}: {}".format(self.auth['account'], msg))

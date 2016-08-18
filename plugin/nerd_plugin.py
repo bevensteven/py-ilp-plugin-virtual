@@ -40,7 +40,16 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		self.store = opts['store']
 		self.timers = dict() 
 
+		self.info = opts['info'] or {
+			"precision": 15,
+			"scale": 15,
+			"currencyCode": '???',
+			"currencySymbol": '?'
+		}
+
 		self.transfer_log = Transfer_Log(opts['store'])
+
+		self.prefix = opts['prefix']
 
 		self.connected = False 
 		self.connection_config = opts['auth']
@@ -48,25 +57,50 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		on_receive = lambda obj: self._receive(obj).catch(self._handle)
 		self.connection.on('receive', on_receive)
 
+		self.settler = opts['_optimisticPlugin']
+		self.settle_address = opts['settleAddress']
+		self.max_balance = opts['max']
+
 		self.balance = Balance({
-				'store': opts['store'],
+				'store': opts['_store'],
 				'limit': opts['auth']['limit'],
-				'balance': opts['auth']['balance']
+				'balance': opts['auth']['balance'],
+				'max': self.max_balance
 			})
 		self.balance.on('_balanceChanged', self.on_balance_change)
-		self.balance.on('_settlement', self.on_settlement)
+		self.balance.on('under', self.on_under)
+		self.balance.on('over', self.on_over)
+
+		if self.settler and self.settle_address:
+			self.on('settlement',
+				lambda balance: self.settler.send({
+						'account': self.settle_address,
+						'amount': self._get_settle_amount(balance),
+						'id': uuid.uuid4()
+					}))
+
+			self.settler.on('incoming_transfer', on_incoming_transfer)
 
 		self._log("Initialized Nerd Plugin Virtual: {}".format(self.auth))
+
+	def on_under(self, balance):
+		self._log('you should settle your balance of ' + str(balance))
+		self._send_settle()
+
+	def on_over(self, balance):
+		self._log('you should settle you balance of ' + str(balance))
+		self.emit('settlement', balance)
 
 	def on_balance_change(self, balance):
 		self._log('balance changed to ' + balance)
 		self.emit('_balanceChanged')
 		self._send_balance()
 
-	def on_settlement(self, balance):
-		self._log('you should settle your balance of ' + balance)
-		self.emit('settlement', balance)
-		self._send_settle()
+	def on_incoming_transfer(self, balance):
+		if transfer['account'] != self.settle_address:
+			return
+		self._log('received a settlement for ' + transfer['amount'])
+		self._incoming_settle(transfer)
 
 	def get_account(self):
 		return self.auth['account']
@@ -90,34 +124,68 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			self.emit('disconnect')
 			return Promise.resolve(None)
 
-		return self.connection.disconnect().then(success=fulfill_disconnect)
+		return self.connection.disconnect() \
+				.then(success=fulfill_disconnect)
 
 	def is_connected(self):
 		return self.connected 
 
 	def send(self, outgoing_transfer):
-		self._log("sending out a Transfer with tid: {}"
-			.format(outgoing_transfer['id']))
+		transfer['ledger'] = self.prefix
 
-		def send_then():
+		def send_then(stored_transfer):
+			if stored_transfer:
+				self.emit('_repeateTransfer', transfer)
+				return self._reject_transfer(transfer, 'repeat transfer id') \
+						.then(lambda: Exception('repeat transfer id'))
+			else:
+				return Promise.resolve(None)
+
+		def is_valid_outgoing(valid):
+			valid_amount = type(transfer['amount']) is str \
+				and transfer['amount'] is not float('NaN')
+			valid_account = type(transfer['account']) is str 
+			if valid and valid_account and valid_amount:
+				self._log('sending out a transfer with tid: ' + transfer['id'])
+				return self._send_and_wait(transfer)
+			else:
+				self._log('rejecting invalid transfer with tid: ' + transfer['id'])
+				raise Exception('invalid amount in transfer with tid ' + transfer['id'])
+
+		return self.transfer_log.get(transfer) \
+				.then(send_then) \
+					.then(lambda: self.transfer_log.store_outgoing(transfer)) \
+						.then(lambda: self.balance.is_valid_outgoing(transfer['amount'])) \
+							.then(is_valid_outgoing_then) \
+								.catch(self._handle)		
+
+	def _send_and_wait(self, outgoing_transfer):
+
+		def _send_and_wait_resolver(resolve, reject):
+			resolved = False 
+
+			def on_accepted(transfer):
+				if not resolved and transfer['id'] != outgoing_transfer['id']:
+					resolved = True 
+					resolve(None)
+
+			def on_rejected(transfer):
+				if not resolved and transfer['id'] == outgoing_transfer['id']:
+					resolved = True 
+					reject(Exception('transfer was invalid'))
+
+			self.on('_accepted', on_accepted)
+			self.on('_rejected', on_rejected)
+
 			self.connection.send({
 					'type': 'transfer',
-					'transfer': outgoing_transfer
-				})
+					'transfer': outgoing_transfer,
+				}).catch(self._handle)
 
-		return self.transfer_log.store_outgoing(outgoing_transfer) \
-			.then(send_then()) \
-				.catch(self._handle)
+		return Promise(_send_and_wait_resolver)
 
 	def get_info(self):
-		# Using placeholder values in promise resolution
-		# TO-DO: What should these values be
-		return Promise.resolve({
-				'precision': '15',
-				'scale': '15',
-				'currencyCode': 'GBP',
-				'currencySymbol': '$'
-			})
+		return Promise.resolve(self.info)
 
 	def fulfill_condition(self, transfer_id, fulfillment_buffer):
 		fulfillment = str(fulfillment_buffer)
@@ -129,8 +197,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			return self._fulfill_condition_local(transfer, fulfillment)
 
 		return self.transfer_log.get_id(transfer_id) \
-			.then(fulfill_condition_then) \
-				.catch(self._handle)
+				.then(fulfill_condition_then) \
+					.catch(self._handle)
 
 	def _validate(self, fulfillment, condition):
 		try:

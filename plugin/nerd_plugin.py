@@ -95,11 +95,6 @@ class Nerd_Plugin_Virtual(EventEmitter):
 	def is_connected(self):
 		return self.connected 
 
-	def get_connectors(self):
-		# Currently, only connections between two plugins are supported 
-		# Thus, the list is empty 
-		return Promise.resolve([])
-
 	def send(self, outgoing_transfer):
 		self._log("sending out a Transfer with tid: {}"
 			.format(outgoing_transfer['id']))
@@ -332,10 +327,10 @@ class Nerd_Plugin_Virtual(EventEmitter):
 	def _send_balance(self):
 
 		def _send_balance_then(balance):
-			self._log('sending balance: ' + balance)
+			self._log('sending balance: ' + str(balance))
 			return self.connection.send({
 					'type': 'balance',
-					'balance': balance 
+					'balance': str(balance) 
 				})
 
 		return self.balance.get() \

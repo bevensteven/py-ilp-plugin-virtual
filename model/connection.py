@@ -55,7 +55,7 @@ class Connection(EventEmitter):
 
 		def on_message(client, userdata, msg):
 			try:
-				self._log('receiving message')
+				# self._log('receiving message')
 				if type(msg.payload) is bytes:
 					payload = msg.payload.decode('utf-8')
 					if is_json(payload):
@@ -80,13 +80,13 @@ class Connection(EventEmitter):
 				.format(self.host) + status)
 			self.emit("disconnect")
 			
-		self.client = mqtt.Client()
+		self.client = mqtt.Client(transport="websockets")
 		self.client.on_connect    = on_connect
 		self.client.on_message 	  = on_message
 		self.client.on_disconnect = on_disconnect
 
 		self._log('connecting to host `{}`...'.format(self.host))
-		self.client.connect_async(host=self.host, port=1883, keepalive=30)
+		self.client.connect_async(host=self.host, port=8000, keepalive=30)
 		self.client.loop_start()
 
 		return Promise.resolve(None)

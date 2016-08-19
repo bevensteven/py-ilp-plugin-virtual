@@ -60,9 +60,16 @@ class Nerd_Plugin_Virtual(EventEmitter):
 		self.settler = opts['_optimisticPlugin']
 		self.settle_address = opts['settleAddress']
 		self.max_balance = opts['max']
+		self.limit = opts['limit']
+
+		self.warn_max = opts['warnMax']
+		self.warn_limit = opts['warnLimit']
+		self.settle_percent = opts['settle_percent'] or '0.5'
 
 		self.balance = Balance({
 				'store': opts['_store'],
+				'warnLimit': self.warn_limit,
+				'warnMax': self.warn_max,
 				'limit': opts['auth']['limit'],
 				'balance': opts['auth']['balance'],
 				'max': self.max_balance
@@ -482,7 +489,8 @@ class Nerd_Plugin_Virtual(EventEmitter):
 			self._log('sending settlement notification: ' + balance)
 			return self.connection.send({
 					'type': 'settlement',
-					'balance': balance
+					'balance': balance,
+					'max': self.max_balance
 				})
 
 		return self.balance.get() \
@@ -611,9 +619,9 @@ class Nerd_Plugin_Virtual(EventEmitter):
 	def _get_settle_amount(self, balance):
 		balance_number = float(balance)
 		limit_number = float(self.limit)
-
+		settle_percent_number = float(self.settle_percent) 
 		# amount that balance must increase by 
-		return (balance_number - (balance_number - limit_number) / 2) + ''
+		return ((balance_number + limit_number) * settle_percent_number) + ''
 
 	def _outgoing_settle(self, transfer):
 		return self.balance.sub(transfer['amount']) \

@@ -42,15 +42,16 @@ class Noob_Plugin_Virtual(EventEmitter):
 		self.settler = opts['_optimisticPlugin']
 		self.settle_address = opts['settleAddress']
 		self.max_balance = opts['max']
+		self.settle_percent = opts['settlePercent'] or '0.5'
 
 		self._expects = dict()
 		self._seen = dict()
 		self._fulfilled = dict()
 
 		if self.settler and self.settle_address:
-			on_settlement = lambda balance: self.settler.send({
+			on_settlement = lambda obj: self.settler.send({
 					"account": self.settle_address,
-					"amount": self._get_settle_amount(balance),
+					"amount": self._get_settle_amount(obj['balance'], obj['max']),
 					"id": uuid.uuid4()
 				})
 			def on_incoming_transfer(transfer):
@@ -72,12 +73,13 @@ class Noob_Plugin_Virtual(EventEmitter):
 				"transfer": transfer
 			})
 
-	def _get_settle_amount(self, balance):
-		balance_number = balance - 0
-		max_number = self.max_balance - 0
+	def _get_settle_amount(self, balance, max):
+		balance_number = float(balance)
+		max_number = float(self.max_balance)
+		settle_percent_number = float(self.settle_percent_number)
 
 		# amount balance must increase by 
-		amount = str((balance_number + max_number) / 2 - balance_number) + ''
+		amount = str((max_number - balance_number) * settle_percent_number) + ''
 		self._log('going to settle for ' + amount)
 		return amount 
 
@@ -219,6 +221,7 @@ class Noob_Plugin_Virtual(EventEmitter):
 		elif obj['type'] == 'settlement':
 
 			self._log('received settlement notification.')
+			self.emit('_settlement', obj)
 			self.emit('settlement', obj['balance'])
 			return Promise.resolve(None)
 

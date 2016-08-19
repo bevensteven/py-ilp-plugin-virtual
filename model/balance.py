@@ -10,6 +10,9 @@ class Balance(EventEmitter):
 		self._store = opts['store']
 		self._limit = self._convert(opts['limit'])
 		self._balance = opts['balance']
+		self._max = self._convert(opts['max'])
+		self._warn_max = self._convert(opts['warnMax'])
+		self._warn_limit = self._convert(opts['warn_limit'])
 		self._initialized = False 
 		self._field = 'account'
 
@@ -52,14 +55,30 @@ class Balance(EventEmitter):
 	def sub(self, amount):
 		return self.add(str(-self._convert(amount)))
 
+	def is_valid_outgoing(self, amount_string):
+		amount = self._convert(amount_string)
+
+		def is_valid_outgoing_then(balance):
+			in_max = balance.add(amount) <= self._max 
+			in_warn = balance.add(amount) <= self._warn_max
+			positive = amount >= self._convert('0')
+			if not in_warn:
+				self.emit('over', balance)
+			return Promise.resolve(in_max and positive)
+
+		return self._get_number() \
+				.then(is_valid_outgoing_then)
+
 	def is_valid_incoming(self, amount_string):
 		amount = self._convert(amount_string)
 
 		def is_valid_incoming_then(balance):
-			is_within_limit = balance - amount >= -self._limit
-			is_positive = amount >= Decimal('0')
-			if not is_within_limit:
-				self.emit("settlement", balance)
-			return Promise.resolve(is_within_limit and is_positive)
+			in_limit = balance.sub(amount) >= -self._limit
+			in_warn = balance.sub(amount) >= -self._warn_limit
+			positive = amount >= self._convert('0')
+			if not in_warn:
+				self.emit('under', balance)
+			return Promise.resolve(in_limit and positive)
 
-		return self._get_number().then(is_valid_incoming_then)
+		return self._get_number() \
+				.then(is_valid_incoming_then)
